@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>WE Learn 课件 iframe 回归演示</title>
+<style>body{font:16px/1.6 system-ui;margin:24px;background:#eef2f6}iframe{width:calc(100% - 410px);min-width:480px;height:1000px;border:1px solid #ccd5df;background:white}</style>
+<h1>外层页面没有题目，题目全部位于跨域 iframe 内</h1>
+<p>本页通过 http://127.0.0.1:8765/frame-demo.html 打开；框架来自 localhost，因此与外层不同源。</p>
+<button type="button" id="reload-frame">重新加载课件</button>
+<iframe id="contentFrame" title="模拟外教社课件" src="http://localhost:8765/course-frame.html"></iframe>
+<script>document.getElementById('reload-frame').onclick=()=>{ document.getElementById('contentFrame').src='http://localhost:8765/course-frame.html?reload='+Date.now(); };</script>
+<script src="welearn-helper.user.js"></script>
+</html>

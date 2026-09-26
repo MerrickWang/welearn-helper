@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>ADL 控件结构演示</title>
+<style>
+body{font:16px/1.6 system-ui;margin:20px}section{padding:12px;border-bottom:1px solid #ccd5df}input,textarea{font:inherit;width:90%;padding:5px}
+[data-itemtype=result]{display:none}[data-itemtype=options]>li{padding:6px;cursor:pointer}[data-choiced]{background:#b7e8d9}#checks{white-space:pre-wrap}
+</style>
+<h2>按已观察到的真实课件标记构造的样例</h2>
+<section data-controltype="filling" data-id="course-fill" isblur="/">填空（两个可接受答案）：
+  <input type="text" data-itemtype="input" data-solution="30 percent/30%" aria-label="课件填空">
+  <div data-itemtype="result">30 percent</div>
+</section>
+<section data-controltype="fillinglong" data-id="course-essay">主观题：
+  <textarea data-itemtype="textarea" data-solution="" aria-label="课件主观题"></textarea>
+  <div data-itemtype="result"><div>(Answers may vary.)</div><div>Buy food from reputable sources.</div></div>
+</section>
+<section data-controltype="choice" data-id="course-single">自定义单选：
+  <ul data-itemtype="options"><li>A. Incorrect</li><li data-solution="">B. Correct</li><li>C. Incorrect</li></ul>
+</section>
+<section data-controltype="multichoice" data-id="course-multi" data-maxcount="2">自定义多选：
+  <ul data-itemtype="options"><li data-solution="">A. Correct</li><li>B. Incorrect</li><li data-solution="">C. Correct</li></ul>
+</section>
+<section data-controltype="fillinglong" data-id="course-empty">只有提示，没有参考答案：
+  <textarea data-itemtype="textarea" data-solution="" aria-label="无参考答案"></textarea>
+  <div data-itemtype="result">(Answers may vary.)</div>
+</section>
+<section data-controltype="choice" data-id="course-locked" data-submitted="">已提交并锁定：
+  <ul data-itemtype="options"><li>A. Incorrect</li><li data-solution="">B. Correct</li></ul>
+</section>
+<div id="dynamic"></div>
+<button type="button" id="add">加载新题</button>
+<button type="button" id="seed">设置已有错误多选</button>
+<button type="button" id="check">检查课件填写结果</button>
+<pre id="checks"></pre>
+<script>
+  // 与已核对的 ADL 课件语义一致：change 保存文本，click 更新选中标记。
+  // 只修改演示 DOM，不连接 WE Learn、不保存学习记录。
+  document.addEventListener('change', event => {
+    if (event.target.matches('[data-itemtype=input], [data-itemtype=textarea]')) event.target.dataset.saved = event.target.value;
+  });
+  document.querySelectorAll('[data-itemtype=options]>li').forEach(option => option.addEventListener('click', () => {
+    const root=option.closest('[data-controltype]');
+    if(root.hasAttribute('data-submitted')) return;
+    if(root.dataset.controltype==='multichoice') {
+      if(!option.hasAttribute('data-choiced') && root.querySelectorAll('[data-choiced]').length>=Number(root.dataset.maxcount)) return;
+      option.toggleAttribute('data-choiced');
+    } else {
+      root.querySelectorAll('[data-choiced]').forEach(el=>el.removeAttribute('data-choiced'));
+      option.setAttribute('data-choiced','');
+    }
+  }));
+  document.getElementById('seed').onclick=()=>{
+    const options=document.querySelectorAll('[data-id=course-multi] li');
+    options[0].setAttribute('data-choiced','');options[1].setAttribute('data-choiced','');options[2].removeAttribute('data-choiced');
+  };
+  document.getElementById('add').onclick=()=>{
+    const root=document.createElement('section'); root.dataset.controltype='filling';root.dataset.id='course-dynamic';
+    root.innerHTML='<input type="text" data-itemtype="input" data-solution="new answer" aria-label="新课件答案">';
+    document.getElementById('dynamic').append(root);
+  };
+  document.getElementById('check').onclick=()=>{
+    const input=document.querySelector('[aria-label="课件填空"]');
+    const textarea=document.querySelector('[aria-label="课件主观题"]');
+    const choice=id=>[...document.querySelectorAll('[data-id="'+id+'"] li')].map(el=>el.hasAttribute('data-choiced'));
+    const checks={
+      alternatives:input.value==='30 percent',
+      reference:textarea.value==='Buy food from reputable sources.',
+      single:JSON.stringify(choice('course-single'))==='[false,true,false]',
+      multi:JSON.stringify(choice('course-multi'))==='[true,false,true]',
+      changeSaved:input.dataset.saved===input.value && textarea.dataset.saved===textarea.value,
+      noReference:document.querySelector('[aria-label="无参考答案"]').value==='',
+      locked:JSON.stringify(choice('course-locked'))==='[false,false]',
+    };
+    document.getElementById('checks').textContent=Object.entries(checks).map(([k,v])=>(v?'PASS ':'FAIL ')+k).join('\n');
+  };
+</script>
+<script src="welearn-helper.user.js"></script>
+</html>

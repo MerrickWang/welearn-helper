@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML 答案助手 · 本地演示</title>
+<style>
+  body{font:16px/1.6 system-ui,sans-serif;background:#eef2f6;color:#16233a;margin:30px;max-width:850px;padding-right:380px}
+  h1{font-size:26px}.question{background:white;padding:16px;margin:14px 0;border-radius:10px;border:1px solid #d6dfe8}
+  input[type=text],input:not([type]),textarea,select,[contenteditable]{font:inherit;padding:6px;border:1px solid #aebccc;border-radius:5px;max-width:95%}
+  textarea{width:95%;height:80px}label{margin-right:12px}button{padding:8px 14px;cursor:pointer}#events{white-space:pre-wrap;font:12px/1.5 monospace}
+  @media(max-width:900px){body{padding-right:0;margin:16px}.question{max-width:95%}}
+</style>
+<h1>HTML 答案助手 · 本地演示</h1>
+<p>这是模拟数据，用于验证脚本行为，不代表 WE Learn 的实际页面结构。先预览，再填入。</p>
+<form id="demo-form">
+  <section class="question" id="blank"><label>填空：Hello <input type="text" data-answer="world" aria-label="单空答案"></label></section>
+  <section class="question" id="blanks" data-answer='["one","two"]'>多空：<input aria-label="第一个空"> <input aria-label="第二个空"></section>
+  <section class="question" id="single" data-answer="B">单选（已打乱顺序）：
+    <label><input type="radio" name="single" value="C"> C. green</label>
+    <label><input type="radio" name="single" value="A"> A. red</label>
+    <label><input type="radio" name="single" value="B"> B. blue</label>
+  </section>
+  <section class="question" id="multi" data-answer='["A","C"]'>多选：
+    <label><input type="checkbox" value="C"> C. pear</label>
+    <label><input type="checkbox" value="B"> B. stone</label>
+    <label><input type="checkbox" value="A"> A. apple</label>
+  </section>
+  <section class="question" id="select" data-answer="B"><label>下拉选择：<select aria-label="下拉答案"><option value="">请选择</option><option value="A">red</option><option value="B">blue</option></select></label></section>
+  <section class="question" id="essay"><label>主观题：<textarea aria-label="主观题答案"></textarea></label><span class="correct-answer" hidden>Reading helps us understand different perspectives.</span></section>
+  <section class="question" id="editable" data-answer="A short paragraph.">可编辑区域：<div contenteditable="true" role="textbox" aria-label="可编辑答案"></div></section>
+  <section class="question" data-question-id="json-q"><label>JSON 答案：<input aria-label="JSON 答案"></label></section>
+  <section class="question" id="existing" data-answer="replacement"><label>已有作答（默认保留）：<input value="my original answer" aria-label="已有作答"></label></section>
+  <section class="question" id="conflict" data-answer="one" data-correct-answer="two"><label>冲突来源（应跳过）：<input aria-label="冲突答案"></label></section>
+  <section class="question" id="missing"><label>无答案（应跳过）：<input aria-label="无答案"></label></section>
+  <section class="question" id="mismatch" data-answer='["one"]'><label>答案数量不符（应跳过）：<input aria-label="数量不符1"><input aria-label="数量不符2"></label></section>
+  <section class="question" id="locked" data-answer="locked"><label>只读（应跳过）：<input readonly aria-label="只读答案"></label></section>
+  <section class="question" id="ambiguous" data-answer="A">选项歧义（应跳过）：<label><input type="radio" name="ambiguous" value="A"> A. first</label><label><input type="radio" name="ambiguous" value="A"> A. second</label></section>
+</form>
+<button id="add" type="button">加载一道新题</button> <button id="verify" type="button">检查默认填入结果</button>
+<p id="verification" role="status"></p><pre id="events"></pre>
+<script type="application/json">{"questions":[{"questionId":"json-q","correctAnswer":"from JSON"}]}</script>
+<script>
+  const eventCounts = { input: 0, change: 0, submit: 0 };
+  const form = document.getElementById('demo-form');
+  for (const type of Object.keys(eventCounts)) form.addEventListener(type, event => {
+    if (type === 'submit') event.preventDefault();
+    eventCounts[type]++;
+    document.getElementById('events').textContent = JSON.stringify(eventCounts);
+  });
+  document.getElementById('add').addEventListener('click', () => {
+    const question = document.createElement('section');
+    question.className = 'question';
+    question.dataset.answer = 'dynamic';
+    question.innerHTML = '<label>新加载的题目：<input aria-label="动态答案"></label>';
+    form.append(question);
+  });
+  document.getElementById('verify').addEventListener('click', () => {
+    const value = selector => document.querySelector(selector)?.value;
+    const checks = {
+      blank: value('#blank input') === 'world',
+      blanks: [...document.querySelectorAll('#blanks input')].map(el => el.value).join(',') === 'one,two',
+      radio: value('#single input:checked') === 'B',
+      checkbox: [...document.querySelectorAll('#multi input:checked')].map(el => el.value).sort().join(',') === 'A,C',
+      select: value('#select select') === 'B',
+      essay: value('#essay textarea') === 'Reading helps us understand different perspectives.',
+      editable: document.querySelector('#editable [contenteditable]').textContent === 'A short paragraph.',
+      json: value('[data-question-id="json-q"] input') === 'from JSON',
+      existing: value('#existing input') === 'my original answer',
+      conflict: value('#conflict input') === '',
+      missing: value('#missing input') === '',
+      mismatch: [...document.querySelectorAll('#mismatch input')].every(el => !el.value),
+      readonly: value('#locked input') === '',
+      ambiguous: document.querySelector('#ambiguous input:checked') === null,
+      events: eventCounts.input >= 10 && eventCounts.change >= 10,
+      noSubmit: eventCounts.submit === 0,
+    };
+    document.getElementById('verification').textContent = Object.entries(checks).map(([key, passed]) => `${passed ? 'PASS' : 'FAIL'} ${key}`).join(' · ');
+  });
+</script>
+<script src="welearn-helper.user.js"></script>
+</html>

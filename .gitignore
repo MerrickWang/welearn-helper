@@ -1,0 +1,19 @@
+# Local third-party course sources and inspection materials
+/inspection/
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Generated files and developer tooling
+*.zip
+*.log
+node_modules/
+__pycache__/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

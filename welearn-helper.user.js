@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WE Learn HTML 答案填入助手
 // @namespace    local.welearn.html-helper
-// @version      0.3.1
+// @version      0.3.2
 // @description  支持外教社课件 iframe、ChooseBox 分类选项填空、自定义选择题及主观题参考答案。
 // @match        https://welearn.sflep.com/*
 // @match        https://courseres.sflep.com/*
@@ -20,7 +20,7 @@
     const notice = document.createElement('div');
     notice.id = 'welearn-html-helper-startup-error';
     notice.style.cssText = 'position:fixed;top:12px;left:12px;z-index:2147483647;background:#991b1b;color:white;padding:14px;border:2px solid white;border-radius:8px;font:14px/1.6 sans-serif;max-width:80vw;white-space:pre-wrap';
-    notice.textContent = `WE Learn 助手 v0.3.1 启动失败（${location.hostname}）\n${error?.name || 'Error'}: ${error?.message || String(error)}\n请复制此提示用于排查。`;
+    notice.textContent = `WE Learn 助手 v0.3.2 启动失败（${location.hostname}）\n${error?.name || 'Error'}: ${error?.message || String(error)}\n请复制此提示用于排查。`;
     (document.body || document.documentElement).appendChild(notice);
   }
 
@@ -57,7 +57,7 @@
         ol{padding-left:22px;margin:0;max-height:240px;overflow:auto;font-size:12px}
         li{padding:5px 0;overflow-wrap:anywhere}.ok{color:#176c55}.skip{color:#925719}
       </style>
-      <details open><summary>WE Learn · HTML 答案助手 v0.3.1</summary><div class="body">
+      <details open><summary>WE Learn · HTML 答案助手 v0.3.2</summary><div class="body">
         <p>支持课件 iframe、分类/选项填空、自定义选择题和已有主观题参考答案。</p>
         <div class="actions"><button id="scan" type="button">读取 / 预览</button><button id="fill" type="button">填入答案</button></div>
         <label><input id="auto" type="checkbox"> 自动填入当前页面及新加载的题目</label>
@@ -73,6 +73,13 @@
 
     function normalized(value) {
       return String(value).replace(/\s+/g, ' ').trim();
+    }
+
+    function courseProse(value) {
+      // HTML 属性内的单次换行通常来自源码排版；空白行作为段落边界保留。
+      return String(value).replace(/\r\n?/g, '\n').trim()
+        .split(/\n[\t \u00a0]*\n(?:[\t \u00a0]*\n)*/)
+        .map(normalized).filter(Boolean).join('\n\n');
     }
 
     function decode(raw) {
@@ -219,7 +226,8 @@
           if (!raw) return null;
           // 仅遵循课件明确给出的可接受答案分隔符，普通文本中的斜杠不拆分。
           const sep = root.getAttribute('isblur') || root.closest('[data-blur]')?.getAttribute('data-blur');
-          return (sep ? raw.split(sep === 'true' ? '.' : sep)[0] : raw).trim();
+          const answer = (sep ? raw.split(sep === 'true' ? '.' : sep)[0] : raw).trim();
+          return root.matches('[data-controltype="fillinglong"]') ? courseProse(answer) : answer;
         });
         if (values.length && values.every(value => value !== null && value !== '')) {
           return { value: values.length === 1 ? values[0] : values, source: '课件输入框 data-solution' };
@@ -487,7 +495,7 @@
         }
         if (!state.report) {
           if (Date.now() - state.started < 4000) pending++;
-          else warnings.push(`课件 ${state.origin} 未响应：请确认油猴已启用 v0.3.1，并刷新整个学习页。`);
+          else warnings.push(`课件 ${state.origin} 未响应：请确认油猴已启用 v0.3.2，并刷新整个学习页。`);
           continue;
         }
         rows.push(...state.report.rows.map(row => ({ ...row, label: `课件 / ${row.label}` })));

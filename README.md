@@ -2,7 +2,7 @@
 
 用于 WE Learn 网页端的 Tampermonkey 用户脚本：读取页面 HTML 中已有的答案，预览匹配结果，再填入对应控件。支持课件 iframe、普通填空、ChooseBox 分类题、自定义选择题和已有参考答案的主观题。
 
-**当前版本：v0.3.1。** 无需构建、后端服务或 API Key。
+**当前版本：v0.3.2。** 无需构建、后端服务或 API Key。
 
 > 兼容性以已观察到的外教社 ADL 课件结构为基础，并非覆盖所有 WE Learn 课程。v0.3.1 已通过本地验证，实际 Edge 中的完整答题脚本运行情况仍待确认。
 
@@ -35,7 +35,7 @@
    https://centercourseware.sflep.com/*
    ```
 
-5. 返回学习页，刷新整个页面。右下角应出现 **WE Learn · HTML 答案助手 v0.3.1** 面板。
+5. 返回学习页，刷新整个页面。右下角应出现 **WE Learn · HTML 答案助手 v0.3.2** 面板。
 
 Edge 中的“允许用户脚本”与扩展“站点访问”是两个不同设置。若脚本没有启动，打开 `edge://extensions` → Tampermonkey → 详细信息检查。具体选项随浏览器版本变化，参见[油猴官方执行权限说明](https://www.tampermonkey.net/faq.php?locale=zh&q=Q209)。
 
@@ -52,6 +52,12 @@ Edge 中的“允许用户脚本”与扩展“站点访问”是两个不同设
 5. 只有需要替换现有作答时，才勾选 **覆盖已有作答**。提交由使用者在网页中操作。
 
 ## 常见问题
+
+### 主观题出现多余换行或缩进
+
+v0.3.2 清理 ADL 主观题 `data-solution` 中的单次换行、制表符和重复空格，保留空白行分隔的段落。单次换行按正文折行处理，诗歌或逐行列表等特殊格式不在该规则的保留范围内。
+
+更新后，旧答案已填入的题目需要勾选“覆盖已有作答”并重新填入；已提交且锁定的题目仍会跳过。如果仍有异常排版，请提供控件 HTML，以区分答案文本空白与页面 CSS 自动折行。
 
 ### 油猴显示“没有运行中的脚本”
 
@@ -90,6 +96,7 @@ welearn-helper/
 ├── demo.html                     # 通用表单模拟与 16 项检查
 ├── course-frame.html             # ADL 控件模拟与 7 项检查
 ├── frame-demo.html               # 跨域 iframe 演示入口
+├── tests/prose.test.cjs           # 主观题换行回归测试
 ├── README.md
 ├── CHANGELOG.md
 ├── .gitattributes
@@ -107,6 +114,7 @@ git clone https://github.com/MerrickWang/welearn-helper.git
 cd welearn-helper
 node --check welearn-helper.user.js
 node --check welearn-startup-check.user.js
+node --test tests/prose.test.cjs
 python -m http.server 8765 --bind 127.0.0.1
 ```
 
